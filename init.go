@@ -12,6 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package flagon is a small document store (built on BoltDB).  See
-// `README` for basic details.
 package flagon
+
+import (
+	"log"
+	"regexp"
+)
+
+func init() {
+	// Set log format.
+	f := log.Flags()
+	log.SetFlags(f | log.Llongfile)
+
+	// Initialisations.
+	nsNameRegexp = regexp.MustCompile("^[a-z0-9][a-z0-9\\-_]*[a-z0-9]$")
+}
