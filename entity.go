@@ -78,3 +78,6 @@ type EntityType interface {
 	// tuple to the provided predicate.
 	Search(SearchOpts, SearchFn) ([]uint64, error)
 }
+
+// EntityTypeDefn captures the necessary information for defining and
+// dealing with instances of specific entity types.
