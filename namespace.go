@@ -15,7 +15,6 @@
 package flagon
 
 import (
-	"fmt"
 	"regexp"
 	"sync"
 )
@@ -45,10 +44,10 @@ type Namespace struct {
 // or more.  Names must be lowercase.
 func NewNamespace(name string) (*Namespace, error) {
 	if name == "" {
-		return nil, fmt.Errorf("empty namespace name given")
+		return nil, ErrNameEmpty
 	}
 	if !nameRegexp.MatchString(name) {
-		return nil, fmt.Errorf("name should conform to `%s`, given '%s'", nameRegexp.String(), name)
+		return nil, ErrNameInvalid
 	}
 
 	return &Namespace{name: name, buckets: make([]string, 0, 1)}, nil

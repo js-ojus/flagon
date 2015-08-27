@@ -148,7 +148,7 @@ type EntityTypeDefn struct {
 // type with the given name.
 func NewEntityTypeDefn(name string) (*EntityTypeDefn, error) {
 	if !nameRegexp.MatchString(name) {
-		return nil, fmt.Errorf("name should conform to `%s`, given '%s'", nameRegexp.String(), name)
+		return nil, ErrNameInvalid
 	}
 
 	ed := &EntityTypeDefn{name: name, fields: make(map[string]FieldDefn, 2)}
@@ -169,16 +169,16 @@ func (ed *EntityTypeDefn) Name() string {
 // details.
 func (ed *EntityTypeDefn) AddField(name string, ftype FieldType) error {
 	if !nameRegexp.MatchString(name) {
-		return fmt.Errorf("name should conform to `%s`, given '%s'", nameRegexp.String(), name)
+		return ErrNameInvalid
 	}
 	if !IsValidFieldType(ftype) {
-		return fmt.Errorf("invalid name or field type")
+		return ErrFieldTypeUnknown
 	}
 	ed.mutex.Lock()
 	defer ed.mutex.Unlock()
 
 	if _, ok := ed.fields[name]; ok {
-		return fmt.Errorf("duplicate field: %s", name)
+		return ErrNameExists
 	}
 
 	n := len(ed.fields)
@@ -196,7 +196,7 @@ func (ed *EntityTypeDefn) Field(name string) (FieldDefn, error) {
 		return fd, nil
 	}
 
-	return FieldDefn{}, fmt.Errorf("unknown field: %s", name)
+	return FieldDefn{}, ErrNameUnknown
 }
 
 // Fields answers a copy of the field definitions of this entity type.

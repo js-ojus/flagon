@@ -16,7 +16,6 @@ package flagon
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
 	"log"
 	"time"
@@ -109,7 +108,7 @@ func (f basicField) ID() uint8 {
 // type definition.
 func (f *basicField) setID(id uint8) error {
 	if id == 0 {
-		return fmt.Errorf("zero ID: %d", id)
+		return ErrIdentifierZero
 	}
 
 	f.id = id
