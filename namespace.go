@@ -22,7 +22,7 @@ import (
 
 // nsNameRegexp holds the compiled regular expression that validates
 // namespace names.
-var nsNameRegexp *regexp.Regexp
+var nameRegexp *regexp.Regexp
 
 // Namespace provides a logical grouping of related data.
 //
@@ -47,8 +47,8 @@ func NewNamespace(name string) (*Namespace, error) {
 	if name == "" {
 		return nil, fmt.Errorf("empty namespace name given")
 	}
-	if !nsNameRegexp.MatchString(name) {
-		return nil, fmt.Errorf("invalid name: %s", name)
+	if !nameRegexp.MatchString(name) {
+		return nil, fmt.Errorf("name should conform to `%s`, given '%s'", nameRegexp.String(), name)
 	}
 
 	return &Namespace{name: name, buckets: make([]string, 0, 1)}, nil

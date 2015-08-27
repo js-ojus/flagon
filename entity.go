@@ -147,8 +147,8 @@ type EntityTypeDefn struct {
 // NewEntityTypeDefn creates an in-memory definition for a new entity
 // type with the given name.
 func NewEntityTypeDefn(name string) (*EntityTypeDefn, error) {
-	if name == "" {
-		return nil, fmt.Errorf("empty name given")
+	if !nameRegexp.MatchString(name) {
+		return nil, fmt.Errorf("name should conform to `%s`, given '%s'", nameRegexp.String(), name)
 	}
 
 	ed := &EntityTypeDefn{name: name, fields: make(map[string]FieldDefn, 2)}
@@ -168,7 +168,10 @@ func (ed *EntityTypeDefn) Name() string {
 // AddField adds a new field to this entity type using the given
 // details.
 func (ed *EntityTypeDefn) AddField(name string, ftype FieldType) error {
-	if name == "" || !IsValidFieldType(ftype) {
+	if !nameRegexp.MatchString(name) {
+		return fmt.Errorf("name should conform to `%s`, given '%s'", nameRegexp.String(), name)
+	}
+	if !IsValidFieldType(ftype) {
 		return fmt.Errorf("invalid name or field type")
 	}
 	ed.mutex.Lock()
