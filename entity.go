@@ -19,6 +19,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
+	"sync"
 )
 
 // CompOp enumerates the possible comparison operators that can be
@@ -130,3 +131,81 @@ type EntityType interface {
 
 // EntityTypeDefn captures the necessary information for defining and
 // dealing with instances of specific entity types.
+//
+// Fields can only be added to an entity type -- they can NOT be
+// removed.  However, since unused fields do not incur storage
+// overhead, having abandoned fields does not affect new instances.
+// This restriction is needed since old data needs to be retrieved
+// properly.
+type EntityTypeDefn struct {
+	id     uint16               // unique ID of this entity type
+	name   string               // unique name of this entity type
+	mutex  sync.RWMutex         // to protect fields
+	fields map[string]FieldDefn // recognised fields of this entity type
+}
+
+// NewEntityTypeDefn creates an in-memory definition for a new entity
+// type with the given name.
+func NewEntityTypeDefn(name string) (*EntityTypeDefn, error) {
+	if name == "" {
+		return nil, fmt.Errorf("empty name given")
+	}
+
+	ed := &EntityTypeDefn{name: name, fields: make(map[string]FieldDefn, 2)}
+	return ed, nil
+}
+
+// ID answers the unique ID of this entity type.
+func (ed *EntityTypeDefn) ID() uint16 {
+	return ed.id
+}
+
+// Name answers the unique name of this entity type.
+func (ed *EntityTypeDefn) Name() string {
+	return ed.name
+}
+
+// AddField adds a new field to this entity type using the given
+// details.
+func (ed *EntityTypeDefn) AddField(name string, ftype FieldType) error {
+	if name == "" || !IsValidFieldType(ftype) {
+		return fmt.Errorf("invalid name or field type")
+	}
+	ed.mutex.Lock()
+	defer ed.mutex.Unlock()
+
+	if _, ok := ed.fields[name]; ok {
+		return fmt.Errorf("duplicate field: %s", name)
+	}
+
+	n := len(ed.fields)
+	fd := FieldDefn{Ftype: ftype, ID: uint8(n + 1), Name: name}
+	ed.fields[name] = fd
+	return nil
+}
+
+// Field answers the definition for the given field, if found.
+func (ed *EntityTypeDefn) Field(name string) (FieldDefn, error) {
+	ed.mutex.RLock()
+	defer ed.mutex.RUnlock()
+
+	if fd, ok := ed.fields[name]; ok {
+		return fd, nil
+	}
+
+	return FieldDefn{}, fmt.Errorf("unknown field: %s", name)
+}
+
+// Fields answers a copy of the field definitions of this entity type.
+func (ed *EntityTypeDefn) Fields() []FieldDefn {
+	ed.mutex.RLock()
+	defer ed.mutex.RUnlock()
+
+	l := len(ed.fields)
+	res := make([]FieldDefn, 0, l)
+	for _, el := range ed.fields {
+		res = append(res, el)
+	}
+
+	return res
+}

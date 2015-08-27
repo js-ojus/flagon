@@ -74,16 +74,16 @@ func IsValidFieldType(t FieldType) bool {
 // FieldDefn captures the necessary information for defining and
 // dealing with fields and their data.
 type FieldDefn struct {
-	ftype FieldType // type of the data in this field
-	id    int       // unique ID within its entity type
-	name  string    // name of the field
+	Ftype FieldType // type of the data in this field
+	ID    uint8     // unique ID within its entity type
+	Name  string    // name of the field
 }
 
 // Field is the building block of an entity.  It is identified by the
 // ID of its field definition, and stores the actual content of
 // user-supplied data.
 type Field interface {
-	ID() int
+	ID() uint8
 
 	io.ReaderFrom
 	io.WriterTo
@@ -96,18 +96,18 @@ type basicField struct {
 
 // ID answers the unique identifier of this field within its entity
 // type definition.
-func (f basicField) ID() int {
-	return int(f.id)
+func (f basicField) ID() uint8 {
+	return f.id
 }
 
 // setID sets the unique identifier of this field within its entity
 // type definition.
-func (f *basicField) setID(id int) error {
-	if id <= 0 {
-		return fmt.Errorf("negative or zero ID: %d", id)
+func (f *basicField) setID(id uint8) error {
+	if id == 0 {
+		return fmt.Errorf("zero ID: %d", id)
 	}
 
-	f.id = uint8(id)
+	f.id = id
 	return nil
 }
 
