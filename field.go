@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"time"
 )
 
@@ -73,6 +74,10 @@ func IsValidFieldType(t FieldType) bool {
 
 // FieldDefn captures the necessary information for defining and
 // dealing with fields and their data.
+//
+// N.B. A field's unique ID is represented as `uint8`.  Hence, there
+// is a limit of 255 fields per entity type.  In practice, much
+// smaller entity types are recommended.
 type FieldDefn struct {
 	Ftype FieldType // type of the data in this field
 	ID    uint8     // unique ID within its entity type
@@ -515,6 +520,10 @@ func (f *FieldFloat64) WriteTo(w io.Writer) (int64, error) {
 }
 
 // FieldTime represents a time value.
+//
+// N.B. Time values are converted to UTC before serialisation, to
+// enable standardised search and comparison.  Hence, applications
+// should adjust them to the desired time zones before use.
 type FieldTime struct {
 	basicField
 	value time.Time
@@ -548,7 +557,7 @@ func (f *FieldTime) ReadFrom(r io.Reader) (int64, error) {
 
 // WriteTo conforms to `io.WriterTo`.
 func (f *FieldTime) WriteTo(w io.Writer) (int64, error) {
-	by, err := f.value.MarshalBinary()
+	by, err := f.value.UTC().MarshalBinary()
 	if err != nil {
 		return 0, err
 	}
@@ -562,6 +571,11 @@ func (f *FieldTime) WriteTo(w io.Writer) (int64, error) {
 }
 
 // FieldString represents a string value.
+//
+// N.B. The length of a string field is represented as `uint16`, and
+// is hence limited to 65535 bytes.  Trying to set string values
+// larger than that will be ignored, but will be logged.  Use files
+// for larger strings.
 type FieldString struct {
 	basicField
 	value string
@@ -574,7 +588,8 @@ func (f *FieldString) Get() string {
 
 // Set sets the given value in this field's storage.
 func (f *FieldString) Set(v string) {
-	if v == "" {
+	if len(v) > 65535 {
+		log.Printf("string length exceeds maximum limit of 65535")
 		return
 	}
 
@@ -583,7 +598,7 @@ func (f *FieldString) Set(v string) {
 
 // ReadFrom conforms to `io.ReaderFrom`.
 func (f *FieldString) ReadFrom(r io.Reader) (int64, error) {
-	l := uint32(len(f.value))
+	l := uint16(len(f.value))
 	err := binary.Read(r, binary.BigEndian, &l)
 	if err != nil {
 		return 0, err
@@ -609,7 +624,7 @@ func (f *FieldString) WriteTo(w io.Writer) (int64, error) {
 	}
 
 	by := []byte(f.value)
-	l := uint32(len(by))
+	l := uint16(len(by))
 	err := binary.Write(w, binary.BigEndian, l)
 	if err != nil {
 		return 0, err
