@@ -14,7 +14,12 @@
 
 package flagon
 
-import "fmt"
+import (
+	"bytes"
+	"encoding/binary"
+	"fmt"
+	"log"
+)
 
 // CompOp enumerates the possible comparison operators that can be
 // used when searching entities.
@@ -53,12 +58,54 @@ type SearchOpts struct {
 	Fields []int
 }
 
+// EntityKey holds the globally-unique ID of an instance within its
+// entity type.
+type EntityKey struct {
+	id uint64
+}
+
+// ID answers the globally-unique ID of an instance within its entity
+// type.
+func (k EntityKey) ID() uint64 {
+	return k.id
+}
+
+// Key answers the globally-unique ID of an instance within its entity
+// type in a serialisable form.
+func (k EntityKey) Key() []byte {
+	buf := bytes.NewBuffer(make([]byte, 0, 8))
+	err := binary.Write(buf, binary.BigEndian, k.id)
+	if err != nil {
+		log.Printf("error writing key: %s", err)
+		return nil
+	}
+
+	return buf.Bytes()
+}
+
+// fromKey reads and sets the ID of this key instance from the given
+// serialised form of a key.
+func (k *EntityKey) fromKey(by []byte) error {
+	r := bytes.NewReader(by)
+	err := binary.Read(r, binary.BigEndian, &k.id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Entity specifies the methods that data entities should implement to
 // be recognised by the entity types defined as their resources.
 type Entity interface {
 	// ID answers a globally-unique identifier for this instance
 	// within its entity type.
 	ID() uint64
+	// Key answers the globally-unique ID of an instance within its
+	// entity type in a serialisable form.
+	Key() []byte
+	// TypeName answers the name of this instance's entity type.
+	TypeName() string
 
 	fmt.Stringer // for debugging
 }
@@ -66,6 +113,8 @@ type Entity interface {
 // EntityType specifies the methods that data entity types should
 // implement to handle instances of the resources they represent.
 type EntityType interface {
+	// Name answers the user-defined name of this entity type.
+	Name() string
 	// Get looks up the table for the entity having the given ID, and
 	// answers the same if found.
 	Get(uint64) (Entity, error)
